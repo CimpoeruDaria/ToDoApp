@@ -1,0 +1,53 @@
+{% extends "ToDoApp/layout.html" %}
+
+{% block title %} Register {% endblock %}
+
+{% block content %} 
+
+<style>
+    
+     .link-login{
+        color: #4f6d66;
+    }
+
+    .link-login:hover{
+        color: #5e7e78;
+    }
+
+    .btn-register{
+        background-color: #3B524D;
+        font-size: 20px;
+        padding: 10px;
+        color: rgb(232, 231, 231);
+        border-radius: 10px;
+    }
+
+    .btn-register:hover{
+      background-color: #455d59;
+      color: rgb(250, 249, 249);
+    }
+
+    .text{
+        color: #2c3d39;
+    }
+
+</style>
+
+
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4">
+            <h3 class="text-center mb-3" style = "color: #2c3d39">Register</h3>
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn-register btn-primary w-100">Register</button>
+            </form>
+            <p class="link-register mt-3 text-center text-muted">
+                Do you have an existing account? <a class = "link-login" href="{% url 'login' %}">Login into your account</a>.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

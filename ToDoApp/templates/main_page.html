@@ -1,0 +1,196 @@
+{% extends "ToDoApp/layout.html" %}
+
+{% block title %} Main Page {% endblock %}
+
+{% block content %} 
+<div class="row justify-content-center">
+    <!-- Lista cu task-uri -->
+    <div class="col-lg-9 col-md-10">
+        
+        <!-- Butonul "Create Task" deasupra listei -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="fw-semibold mb-0" style="color: #1C1C1C;">My Tasks</h3>
+            <a href="{% url 'task_create' %}" class="btn text-white fw-semibold px-3 py-2 shadow-sm" style="background-color: #3B5550; border-radius: 8px;">
+                + Create Task
+            </a>
+        </div>
+
+        <!-- Cardul cu tabelul detaliat -->
+        <div class="card shadow-sm border-0" style="border-radius: 12px; overflow: hidden;">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background-color: #FAFAF8; border-bottom: 2px solid #eaeaea;">
+                        <tr class="text-secondary small text-uppercase">
+                            <th scope="col" class="ps-4 py-3" style="width: 50px;">Done</th>
+                            <th scope="col" class="py-3">Task</th>
+                            <th scope="col" class="py-3">Status</th>
+                            <th scope="col" class="py-3">Deadline</th>
+                            <th scope="col" class="py-3">Created at</th>
+                            <th scope="col" class="text-end pe-4 py-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                            <tr {% if task.task_completed %}style="background-color: #fbfbfb;"{% endif %}>
+                                
+                                <!-- Coloana cu Checkbox -->
+                                <td class="ps-4">
+                                    <form method="POST" action="{% url 'task_toggle' task.id %}" class="m-0">
+                                        {% csrf_token %}
+                                        <input type="checkbox" 
+                                               class="form-check-input" 
+                                               style="cursor: pointer; width: 1.2rem; height: 1.2rem; background-color: #8daaa5;" 
+                                               onchange="this.form.submit();"
+                                               {% if task.task_completed %}checked{% endif %}>
+                                    </form>
+                                </td>
+
+                                <!-- Nume task -->
+                                <td class="fw-medium text-dark">
+                                    <span {% if task.task_completed %}class="text-decoration-line-through text-muted"{% endif %}>
+                                        {{ task.task_name }}
+                                    </span>
+                                </td>
+
+                                <!-- Status Badge -->
+                                <td>
+                                    {% if task.task_completed %}
+                                        <span class="badge rounded-pill text-white px-3 py-2" style="background-color: #70cf8f;">
+                                            Done
+                                        </span>
+                                    {% elif task.is_overdue %}
+                                        <span class="badge rounded-pill text-white px-3 py-2 bg-danger shadow-sm">
+                                            Deadline Expired
+                                        </span>
+                                    {% else %}
+                                        <span class="badge rounded-pill text-dark px-3 py-2" style="background-color: #FBB89A;">
+                                            In progress
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Deadline -->
+                                <td>
+                                    {% if task.task_deadline %}
+                                        <span class="small {% if task.is_overdue %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                                            {{ task.task_deadline|date:"d M Y, H:i" }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted small">—</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Dată creare -->
+                                <td class="text-muted small">
+                                    {{ task.task_created_at|date:"d M Y" }}
+                                </td>
+
+                                <!-- Butoane de acțiune -->
+                                <td class="text-end pe-4">
+                                    <a href="{% url 'task_delete' task.id %}" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                                        Delete
+                                    </a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    Press <strong>"+ Create Task"</strong> to add your first task!
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Cardul cu statistici vizuale (Donut Chart) -->
+        <div class="card shadow-sm border-0 mt-4 p-4" style="background-color: #FFFFFF; border-bottom: 2px solid #eaeaea; border-radius: 13px">
+            <h5 class="fw-semibold text-dark mb-3">Statistics</h5>
+            
+            {% if total_tasks > 0 %}
+                <div class="row align-items-center">
+                    <!-- Cercul grafic cu numărul total în mijloc -->
+                    <div class="col-md-5 d-flex justify-content-center">
+                        <div style="position: relative; width: 220px; height: 220px;">
+                            <canvas id="taskStatusChart"></canvas>
+                            <!-- Numărul total centrat în interiorul cercului -->
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;">
+                                <span class="fs-2 fw-bold text-dark d-block leading-none">{{ total_tasks }}</span>
+                                <span class="text-muted small">Total</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Legenda cu detalii și numere -->
+                    <div class="col-md-7 mt-3 mt-md-0">
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex justify-content-between align-items-center p-2 rounded bg-white border">
+                                <span><span class="badge rounded-circle p-1 me-2" style="background-color: #70cf8f;">●</span> Done</span>
+                                <strong class="text-dark">{{ completed_count }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center p-2 rounded bg-white border">
+                                <span><span class="badge rounded-circle p-1 me-2" style="background-color: #ffc107;">●</span> In Progress</span>
+                                <strong class="text-dark">{{ in_progress_count }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center p-2 rounded bg-white border">
+                                <span><span class="badge rounded-circle p-1 me-2" style="background-color: #dc3545;">●</span> Deadline Expired</span>
+                                <strong class="text-dark">{{ overdue_count }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <p class="text-muted text-center my-3">Nu există task-uri pentru a genera statistici.</p>
+            {% endif %}
+        </div>
+
+        <!-- Script Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            const ctx = document.getElementById('taskStatusChart');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Finalizate', 'În curs', 'Expirate'],
+                        datasets: [{
+                            data: [{{ completed_count }}, {{ in_progress_count }}, {{ overdue_count }}],
+                            backgroundColor: [
+                                '#70cf8f', // Verde (Completat)
+                                '#ffc107', // Galben (În curs)
+                                '#dc3545'  // Roșu (Expirat)
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        cutout: '72%', // Mărimea golului din mijloc
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false // Folosim legenda customizată de lângă cerc
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let val = context.raw || 0;
+                                        let total = {{ total_tasks }};
+                                        let pct = Math.round((val / total) * 100);
+                                        return ` ${context.label}: ${val} (${pct}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        </script>
+
+
+    </div>
+</div>
+{% endblock %}
